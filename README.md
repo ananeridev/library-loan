@@ -21,10 +21,9 @@ Library loan system built with NestJS, Prisma, and PostgreSQL.
 
 ## Business Rules
 
-### Empréstimos
+### Loan
 - [x] Maximum of 2 active loans per user
 
 - [x] Block when stock is depleted (copies in use ≥ copiesTotal) → 409 Conflict
 
 - [x] Book existence validation → 404 Not Found
-# library-loan
