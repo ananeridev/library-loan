@@ -1,73 +1,35 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { LoanStatus } from '@prisma/client';
+import { LoansRepository } from './repositories/loans.repository';
 
 @Injectable()
 export class LoansService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private loansRepository: LoansRepository) {}
 
   async createLoan(createLoanDto: CreateLoanDto, userId: string) {
     const { sku } = createLoanDto;
 
-    const book = await this.prisma.book.findUnique({
-      where: { sku },
-      include: {
-        loans: {
-          where: { status: LoanStatus.ACTIVE }
-        }
-      }
-    });
-
+    const book = await this.loansRepository.findBookBySkuWithActiveLoans(sku);
     if (!book) {
       throw new NotFoundException('Book not found');
     }
 
-    const activeLoans = book.loans.length;
-    if (activeLoans >= book.copiesTotal) {
+    if (book.activeLoansCount >= book.copiesTotal) {
       throw new ConflictException('Book not available - out of stock');
     }
 
-    const userActiveLoans = await this.prisma.loan.count({
-      where: {
-        user: { userId },
-        status: LoanStatus.ACTIVE
-      }
-    });
-
+    const userActiveLoans = await this.loansRepository.countUserActiveLoans(userId);
     if (userActiveLoans >= 2) {
       throw new ConflictException('User already has maximum of 2 active loans');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { userId }
-    });
-
+    const user = await this.loansRepository.findUserByUserId(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const loan = await this.prisma.loan.create({
-      data: {
-        userId: user.id,
-        bookId: book.id,
-        status: LoanStatus.ACTIVE
-      },
-      include: {
-        book: {
-          select: {
-            sku: true,
-            title: true,
-            author: true
-          }
-        },
-        user: {
-          select: {
-            userId: true
-          }
-        }
-      }
-    });
+    const loan = await this.loansRepository.createLoan(user.id, book.id);
 
     return {
       id: loan.id,
@@ -81,20 +43,7 @@ export class LoansService {
   }
 
   async returnLoan(loanId: string, userId: string) {
-    const loan = await this.prisma.loan.findUnique({
-      where: { id: loanId },
-      include: {
-        user: true,
-        book: {
-          select: {
-            sku: true,
-            title: true,
-            author: true
-          }
-        }
-      }
-    });
-
+    const loan = await this.loansRepository.findLoanByIdWithDetails(loanId);
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
@@ -107,27 +56,7 @@ export class LoansService {
       throw new ConflictException('Loan already returned');
     }
 
-    const updatedLoan = await this.prisma.loan.update({
-      where: { id: loanId },
-      data: {
-        status: LoanStatus.RETURNED,
-        returnDate: new Date()
-      },
-      include: {
-        book: {
-          select: {
-            sku: true,
-            title: true,
-            author: true
-          }
-        },
-        user: {
-          select: {
-            userId: true
-          }
-        }
-      }
-    });
+    const updatedLoan = await this.loansRepository.updateLoanToReturned(loanId);
 
     return {
       id: updatedLoan.id,
