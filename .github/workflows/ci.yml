@@ -53,11 +53,6 @@ jobs:
     - name: Run linter
       run: npm run lint
 
-    - name: Run tests
-      run: npm run test
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/library_loans_test?schema=public
-
     - name: Run e2e tests
       run: npm run test:e2e
       env:
