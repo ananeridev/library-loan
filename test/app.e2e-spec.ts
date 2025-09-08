@@ -26,12 +26,10 @@ describe('AppController (e2e)', () => {
   });
 
   beforeEach(async () => {
-    // Limpar dados de teste
     await prisma.loan.deleteMany();
     await prisma.book.deleteMany();
     await prisma.user.deleteMany();
 
-    // Criar dados de teste
     await prisma.book.create({
       data: {
         sku: 'TEST-001',
