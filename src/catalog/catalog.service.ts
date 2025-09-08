@@ -10,12 +10,12 @@ export class CatalogService {
     const books = await this.prisma.book.findMany({
       include: {
         loans: {
-          where: { status: LoanStatus.ACTIVE }
-        }
-      }
+          where: { status: LoanStatus.ACTIVE },
+        },
+      },
     });
 
-    return books.map(book => {
+    return books.map((book) => {
       const activeLoans = book.loans.length;
       const availableCopies = book.copiesTotal - activeLoans;
 
@@ -27,7 +27,7 @@ export class CatalogService {
         copiesTotal: book.copiesTotal,
         copiesInUse: activeLoans,
         copiesAvailable: availableCopies,
-        isAvailable: availableCopies > 0
+        isAvailable: availableCopies > 0,
       };
     });
   }

@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CreateLoanDto {
   @ApiProperty({
     description: 'Book SKU for loan',
-    example: 'BOOK-001'
+    example: 'BOOK-001',
   })
   @IsString()
   @IsNotEmpty()

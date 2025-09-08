@@ -32,14 +32,16 @@ export interface LoanWithDetails {
 export class LoansRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findBookBySkuWithActiveLoans(sku: string): Promise<BookWithActiveLoans | null> {
+  async findBookBySkuWithActiveLoans(
+    sku: string,
+  ): Promise<BookWithActiveLoans | null> {
     const book = await this.prisma.book.findUnique({
       where: { sku },
       include: {
         loans: {
-          where: { status: LoanStatus.ACTIVE }
-        }
-      }
+          where: { status: LoanStatus.ACTIVE },
+        },
+      },
     });
 
     if (!book) {
@@ -52,7 +54,7 @@ export class LoansRepository {
       title: book.title,
       author: book.author,
       copiesTotal: book.copiesTotal,
-      activeLoansCount: book.loans.length
+      activeLoansCount: book.loans.length,
     };
   }
 
@@ -60,15 +62,17 @@ export class LoansRepository {
     return this.prisma.loan.count({
       where: {
         user: { userId },
-        status: LoanStatus.ACTIVE
-      }
+        status: LoanStatus.ACTIVE,
+      },
     });
   }
 
-  async findUserByUserId(userId: string): Promise<{ id: string; userId: string } | null> {
+  async findUserByUserId(
+    userId: string,
+  ): Promise<{ id: string; userId: string } | null> {
     return this.prisma.user.findUnique({
       where: { userId },
-      select: { id: true, userId: true }
+      select: { id: true, userId: true },
     });
   }
 
@@ -77,26 +81,28 @@ export class LoansRepository {
       data: {
         userId,
         bookId,
-        status: LoanStatus.ACTIVE
+        status: LoanStatus.ACTIVE,
       },
       include: {
         book: {
           select: {
             sku: true,
             title: true,
-            author: true
-          }
+            author: true,
+          },
         },
         user: {
           select: {
-            userId: true
-          }
-        }
-      }
+            userId: true,
+          },
+        },
+      },
     });
   }
 
-  async findLoanByIdWithDetails(loanId: string): Promise<LoanWithDetails | null> {
+  async findLoanByIdWithDetails(
+    loanId: string,
+  ): Promise<LoanWithDetails | null> {
     return this.prisma.loan.findUnique({
       where: { id: loanId },
       include: {
@@ -105,10 +111,10 @@ export class LoansRepository {
           select: {
             sku: true,
             title: true,
-            author: true
-          }
-        }
-      }
+            author: true,
+          },
+        },
+      },
     });
   }
 
@@ -117,22 +123,22 @@ export class LoansRepository {
       where: { id: loanId },
       data: {
         status: LoanStatus.RETURNED,
-        returnDate: new Date()
+        returnDate: new Date(),
       },
       include: {
         book: {
           select: {
             sku: true,
             title: true,
-            author: true
-          }
+            author: true,
+          },
         },
         user: {
           select: {
-            userId: true
-          }
-        }
-      }
+            userId: true,
+          },
+        },
+      },
     });
   }
 }

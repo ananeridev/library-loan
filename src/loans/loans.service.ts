@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { LoanStatus } from '@prisma/client';
 import { LoansRepository } from './repositories/loans.repository';
@@ -19,7 +24,8 @@ export class LoansService {
       throw new ConflictException('Book not available - out of stock');
     }
 
-    const userActiveLoans = await this.loansRepository.countUserActiveLoans(userId);
+    const userActiveLoans =
+      await this.loansRepository.countUserActiveLoans(userId);
     if (userActiveLoans >= 2) {
       throw new ConflictException('User already has maximum of 2 active loans');
     }
@@ -38,7 +44,7 @@ export class LoansService {
       author: loan.book.author,
       userId: loan.user.userId,
       loanDate: loan.loanDate,
-      status: loan.status
+      status: loan.status,
     };
   }
 
@@ -66,7 +72,7 @@ export class LoansService {
       userId: updatedLoan.user.userId,
       loanDate: updatedLoan.loanDate,
       returnDate: updatedLoan.returnDate,
-      status: updatedLoan.status
+      status: updatedLoan.status,
     };
   }
 }

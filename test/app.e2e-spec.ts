@@ -14,11 +14,13 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
 
     prisma = app.get<PrismaService>(PrismaService);
 
@@ -60,9 +62,7 @@ describe('AppController (e2e)', () => {
     });
 
     it('should require x-user-id header', () => {
-      return request(app.getHttpServer())
-        .get('/catalog')
-        .expect(400);
+      return request(app.getHttpServer()).get('/catalog').expect(400);
     });
   });
 

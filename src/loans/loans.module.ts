@@ -10,8 +10,6 @@ import { UserIdMiddleware } from '../auth/user-id.middleware';
 })
 export class LoansModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(UserIdMiddleware)
-      .forRoutes(LoansController);
+    consumer.apply(UserIdMiddleware).forRoutes(LoansController);
   }
 }

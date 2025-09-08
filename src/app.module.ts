@@ -5,11 +5,6 @@ import { CatalogModule } from './catalog/catalog.module';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    AuthModule,
-    LoansModule,
-    CatalogModule,
-  ],
+  imports: [PrismaModule, AuthModule, LoansModule, CatalogModule],
 })
 export class AppModule {}

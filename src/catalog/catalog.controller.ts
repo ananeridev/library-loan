@@ -1,7 +1,11 @@
-import { Controller, Get, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity } from '@nestjs/swagger';
+import { Controller, Get } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
-import { AuthenticatedRequest } from '../auth/user-id.middleware';
 
 @ApiTags('catalog')
 @ApiSecurity('x-user-id')
@@ -11,8 +15,8 @@ export class CatalogController {
 
   @Get()
   @ApiOperation({ summary: 'List book catalog with availability' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'List of books with availability information',
     schema: {
       type: 'array',
@@ -26,12 +30,12 @@ export class CatalogController {
           copiesTotal: { type: 'number' },
           copiesInUse: { type: 'number' },
           copiesAvailable: { type: 'number' },
-          isAvailable: { type: 'boolean' }
-        }
-      }
-    }
+          isAvailable: { type: 'boolean' },
+        },
+      },
+    },
   })
-  async getCatalog(@Req() req: AuthenticatedRequest) {
+  async getCatalog() {
     return this.catalogService.getCatalog();
   }
 }
