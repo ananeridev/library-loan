@@ -1,23 +1,23 @@
 #!/bin/bash
 
-# Script de setup para testes no GitHub Actions
+# Test setup script for GitHub Actions
 set -e
 
 echo "🚀 Setting up test environment..."
 
-# Instalar dependências
+# Install dependencies
 echo "📦 Installing dependencies..."
 npm ci
 
-# Gerar cliente Prisma
+# Generate Prisma client
 echo "🔧 Generating Prisma client..."
 npx prisma generate
 
-# Configurar banco de dados de teste
+# Setup test database
 echo "🗄️ Setting up test database..."
 npx prisma db push --force-reset
 
-# Executar seed se necessário
+# Run seed if needed
 echo "🌱 Seeding test database..."
 npx prisma db seed
 

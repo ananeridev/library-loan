@@ -1,140 +1,137 @@
-# Estrutura de Testes
+# Test Structure
 
-Este diretório contém todos os testes do projeto organizados por tipo e responsabilidade.
+This directory contains all project tests organized by type and responsibility.
 
-## Estrutura de Pastas
+## Folder Structure
 
 ```
 test/
-├── unit/                    # Testes unitários
-│   ├── jest.config.js      # Configuração Jest para testes unitários
-│   └── README.md           # Documentação dos testes unitários
-├── integration/            # Testes de integração
-│   ├── jest.config.js      # Configuração Jest para testes de integração
+├── unit/                    # Unit tests
+│   ├── jest.config.js      # Jest configuration for unit tests
+│   └── README.md           # Unit tests documentation
+├── integration/            # Integration tests
+│   ├── jest.config.js      # Jest configuration for integration tests
 │   ├── catalog.integration.spec.ts
 │   ├── loans.integration.spec.ts
-│   └── README.md           # Documentação dos testes de integração
-├── e2e/                    # Testes end-to-end
-│   ├── jest.config.js      # Configuração Jest para testes e2e
-│   ├── jest-e2e.json       # Configuração adicional para e2e
-│   ├── setup.ts            # Setup global para testes e2e
-│   ├── app.e2e-spec.ts     # Testes e2e da aplicação
-│   ├── catalog.e2e-spec.ts # Testes e2e do catálogo
-│   ├── loans.e2e-spec.ts   # Testes e2e dos empréstimos
-│   └── README.md           # Documentação dos testes e2e
-└── README.md               # Este arquivo
+│   └── README.md           # Integration tests documentation
+├── e2e/                    # End-to-end tests
+│   ├── jest.config.js      # Jest configuration for e2e tests
+│   ├── catalog.e2e-spec.ts # E2E tests for catalog
+│   ├── loans.e2e-spec.ts   # E2E tests for loans
+│   └── README.md           # E2E tests documentation
+└── README.md               # This file
 ```
 
-## Tipos de Teste
+## Test Types
 
-### Testes Unitários (`src/` e `test/unit/`)
-- **Localização**: `src/**/*.spec.ts` e `test/unit/**/*.spec.ts`
-- **Propósito**: Testam unidades individuais de código (classes, métodos, funções)
-- **Características**: 
-  - Isolados e rápidos
-  - Usam mocks para dependências externas
-  - Focam em lógica de negócio específica
+### Unit Tests (`src/` and `test/unit/`)
+- **Location**: `src/**/*.spec.ts` and `test/unit/**/*.spec.ts`
+- **Purpose**: Test individual code units (classes, methods, functions)
+- **Characteristics**: 
+  - Isolated and fast
+  - Use mocks for external dependencies
+  - Focus on specific business logic
 
-### Testes de Integração (`test/integration/`)
-- **Localização**: `test/integration/**/*.integration.spec.ts`
-- **Propósito**: Testam a integração entre diferentes componentes
-- **Características**:
-  - Testam interações entre serviços e repositórios
-  - Usam mocks para dependências externas (banco de dados, APIs)
-  - Verificam fluxos de dados entre componentes
+### Integration Tests (`test/integration/`)
+- **Location**: `test/integration/**/*.integration.spec.ts`
+- **Purpose**: Test integration between different components
+- **Characteristics**:
+  - Test interactions between services and repositories
+  - Use mocks for external dependencies (database, APIs)
+  - Verify data flows between components
 
-### Testes End-to-End (`test/e2e/`)
-- **Localização**: `test/e2e/**/*.e2e-spec.ts`
-- **Propósito**: Testam a aplicação completa do ponto de vista do usuário
-- **Características**:
-  - Testam APIs completas
-  - Usam banco de dados real (ou containerizado)
-  - Simulam cenários reais de uso
+### End-to-End Tests (`test/e2e/`)
+- **Location**: `test/e2e/**/*.e2e-spec.ts`
+- **Purpose**: Test the complete application from user perspective
+- **Characteristics**:
+  - Test complete APIs
+  - Use real database (or containerized)
+  - Simulate real usage scenarios
 
-## Comandos de Teste
+## Test Commands
 
-### Testes Unitários
+### Unit Tests
 ```bash
-# Executar todos os testes unitários
+# Run all unit tests
 npm run test:unit
 
-# Executar em modo watch
+# Run in watch mode
 npm run test:unit:watch
 
-# Executar com cobertura
+# Run with coverage
 npm run test:unit:cov
 ```
 
-### Testes de Integração
+### Integration Tests
 ```bash
-# Executar todos os testes de integração
+# Run all integration tests
 npm run test:integration
 
-# Executar em modo watch
+# Run in watch mode
 npm run test:integration:watch
 
-# Executar com cobertura
+# Run with coverage
 npm run test:integration:cov
 ```
 
-### Testes E2E
+### E2E Tests
 ```bash
-# Executar todos os testes e2e
+# Run all e2e tests
 npm run test:e2e
 
-# Executar em modo watch
+# Run in watch mode
 npm run test:e2e:watch
 
-# Executar com cobertura
+# Run with coverage
 npm run test:e2e:cov
 ```
 
-### Todos os Testes
+### All Tests
 ```bash
-# Executar todos os tipos de teste
+# Run all test types
 npm run test:all
 
-# Executar todos com cobertura
+# Run all with coverage
 npm run test:all:cov
 ```
 
-## Convenções de Nomenclatura
+## Naming Conventions
 
-- **Testes Unitários**: `*.spec.ts`
-- **Testes de Integração**: `*.integration.spec.ts`
-- **Testes E2E**: `*.e2e-spec.ts`
+- **Unit Tests**: `*.spec.ts`
+- **Integration Tests**: `*.integration.spec.ts`
+- **E2E Tests**: `*.e2e-spec.ts`
 
-## Configuração
+## Configuration
 
-Cada tipo de teste tem sua própria configuração Jest:
-- `test/unit/jest.config.js` - Configuração para testes unitários
-- `test/integration/jest.config.js` - Configuração para testes de integração
-- `test/e2e/jest.config.js` - Configuração para testes e2e
+Each test type has its own Jest configuration:
+- `test/unit/jest.config.js` - Configuration for unit tests
+- `test/integration/jest.config.js` - Configuration for integration tests
+- `test/e2e/jest.config.js` - Configuration for e2e tests
 
-## Cobertura de Código
+## Code Coverage
 
-Os relatórios de cobertura são gerados em:
-- `coverage/unit/` - Cobertura dos testes unitários
-- `coverage/integration/` - Cobertura dos testes de integração
-- `coverage/e2e/` - Cobertura dos testes e2e
+Coverage reports are generated in:
+- `coverage/unit/` - Unit tests coverage
+- `coverage/integration/` - Integration tests coverage
+- `coverage/e2e/` - E2E tests coverage
 
-## Foco no Catálogo
+## Catalog Focus
 
-Os testes do catálogo incluem:
+Catalog tests include:
 
-### Testes Unitários
-- `src/catalog/catalog.service.spec.ts` - Testes do serviço de catálogo
-- `src/catalog/catalog.controller.spec.ts` - Testes do controller de catálogo
+### Unit Tests
+- `src/catalog/catalog.service.spec.ts` - Catalog service tests
+- `src/catalog/catalog.controller.spec.ts` - Catalog controller tests
 
-### Testes de Integração
-- `test/integration/catalog.integration.spec.ts` - Testes de integração do catálogo
+### Integration Tests
+- `test/integration/catalog.integration.spec.ts` - Catalog integration tests
 
-### Testes E2E
-- `test/e2e/catalog.e2e-spec.ts` - Testes end-to-end do catálogo
+### E2E Tests
+- `test/e2e/catalog.e2e-spec.ts` - Catalog end-to-end tests
 
-Estes testes cobrem:
-- Cálculo de disponibilidade de livros
-- Filtragem de empréstimos ativos
-- Integração com o banco de dados
-- APIs de catálogo
-- Cenários de empréstimo e devolução
+These tests cover:
+- Book availability calculation
+- Active loans filtering
+- Database integration
+- Catalog APIs
+- Loan and return scenarios
