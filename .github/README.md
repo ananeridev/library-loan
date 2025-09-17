@@ -1,110 +1,110 @@
 # GitHub Actions Workflows
 
-Este diretório contém os workflows de CI/CD para o projeto Library Loans.
+This directory contains CI/CD workflows for the Library Loans project.
 
-## 📋 Workflows Disponíveis
+## 📋 Available Workflows
 
-### 1. **test.yml** - Suite de Testes
-Executa todos os tipos de teste:
-- ✅ **Testes Unitários**: Testes isolados de componentes individuais
-- ✅ **Testes de Integração**: Testes com banco de dados real
-- ✅ **Testes E2E**: Testes end-to-end completos
-- ✅ **Build**: Compilação da aplicação
+### 1. **test.yml** - Test Suite
+Executes all types of tests:
+- ✅ **Unit Tests**: Isolated component tests
+- ✅ **Integration Tests**: Tests with real database
+- ✅ **E2E Tests**: Complete end-to-end tests
+- ✅ **Build**: Application compilation
 
 **Triggers:**
-- Push para `main` ou `develop`
-- Pull Requests para `main` ou `develop`
+- Push to `main` or `develop`
+- Pull Requests to `main` or `develop`
 
-### 2. **deploy.yml** - Deploy
-Gerencia o deploy da aplicação:
-- 🚀 **Staging**: Deploy automático quando push para `develop`
-- 🚀 **Produção**: Deploy manual quando push para `main`
+### 2. **deploy.yml** - Deployment
+Manages application deployment:
+- 🚀 **Staging**: Automatic deployment on push to `develop`
+- 🚀 **Production**: Manual deployment on push to `main`
 
-### 3. **security.yml** - Segurança e Qualidade
-Análises de segurança e qualidade de código:
-- 🔒 **Security Audit**: Verificação de vulnerabilidades
+### 3. **security.yml** - Security & Quality
+Security and code quality analysis:
+- 🔒 **Security Audit**: Vulnerability checks
 - 📊 **Code Quality**: ESLint, Prettier, TypeScript
-- 🔍 **Dependency Review**: Análise de dependências
+- 🔍 **Dependency Review**: Dependency analysis
 
-### 4. **coverage.yml** - Cobertura de Código
-Gera relatórios de cobertura:
-- 📈 **Code Coverage**: Relatórios detalhados de cobertura
-- 📊 **Codecov Integration**: Upload automático para Codecov
+### 4. **coverage.yml** - Code Coverage
+Generates coverage reports:
+- 📈 **Code Coverage**: Detailed coverage reports
+- 📊 **Codecov Integration**: Automatic upload to Codecov
 
-## 🚀 Como Usar
+## 🚀 How to Use
 
-### Executar Testes Localmente
+### Run Tests Locally
 ```bash
-# Todos os testes
+# All tests
 npm run test:all
 
-# Apenas testes unitários
+# Unit tests only
 npm run test:unit
 
-# Apenas testes de integração
+# Integration tests only
 npm run test:integration
 
-# Apenas testes E2E
+# E2E tests only
 npm run test:e2e
 ```
 
-### Verificar Status dos Workflows
-1. Acesse a aba **Actions** no GitHub
-2. Visualize o status de cada workflow
-3. Clique em um job para ver logs detalhados
+### Check Workflow Status
+1. Go to the **Actions** tab on GitHub
+2. View the status of each workflow
+3. Click on a job to see detailed logs
 
-### Deploy Manual
-1. Faça push para a branch `main`
-2. Acesse a aba **Actions**
-3. Execute o workflow "Deploy to Production" manualmente
+### Manual Deployment
+1. Push to the `main` branch
+2. Go to the **Actions** tab
+3. Manually run the "Deploy to Production" workflow
 
-## 🔧 Configuração
+## 🔧 Configuration
 
-### Variáveis de Ambiente Necessárias
+### Required Environment Variables
 ```bash
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/library_loans_test
 NODE_VERSION=18
 ```
 
-### Secrets do GitHub (se necessário)
-Configure os seguintes secrets no repositório:
-- `DATABASE_URL_PROD`: URL do banco de produção
-- `DEPLOY_TOKEN`: Token para deploy
-- `SLACK_WEBHOOK`: Webhook para notificações
+### GitHub Secrets (if needed)
+Configure the following secrets in the repository:
+- `DATABASE_URL_PROD`: Production database URL
+- `DEPLOY_TOKEN`: Deployment token
+- `SLACK_WEBHOOK`: Webhook for notifications
 
-## 📊 Relatórios
+## 📊 Reports
 
-### Cobertura de Código
+### Code Coverage
 - **Unit Tests**: `coverage/unit/`
 - **Integration Tests**: `coverage/integration/`
 - **E2E Tests**: `coverage/e2e/`
 
 ### Artifacts
-Os workflows geram os seguintes artifacts:
-- Build artifacts (1 dia de retenção)
-- Coverage reports (7 dias de retenção)
-- Test results (7 dias de retenção)
+Workflows generate the following artifacts:
+- Build artifacts (1 day retention)
+- Coverage reports (7 days retention)
+- Test results (7 days retention)
 
 ## 🐛 Troubleshooting
 
-### Testes Falhando
-1. Verifique os logs na aba Actions
-2. Execute os testes localmente
-3. Verifique se o banco de dados está configurado corretamente
+### Tests Failing
+1. Check logs in the Actions tab
+2. Run tests locally
+3. Verify database configuration
 
-### Deploy Falhando
-1. Verifique se todos os testes passaram
-2. Confirme se as variáveis de ambiente estão configuradas
-3. Verifique os logs de deploy
+### Deployment Failing
+1. Check if all tests passed
+2. Confirm environment variables are configured
+3. Check deployment logs
 
-### Problemas de Performance
-1. Os testes E2E são executados sequencialmente para evitar conflitos
-2. Use cache do npm para acelerar builds
-3. Considere usar runners self-hosted para projetos grandes
+### Performance Issues
+1. E2E tests run sequentially to avoid conflicts
+2. Use npm cache to speed up builds
+3. Consider self-hosted runners for large projects
 
-## 📝 Notas Importantes
+## 📝 Important Notes
 
-- **Testes E2E**: Executados sequencialmente (`maxWorkers: 1`) para evitar conflitos de dados
-- **Banco de Dados**: PostgreSQL 13 é usado para todos os testes
-- **Node.js**: Versão 18 é usada em todos os workflows
-- **Cache**: Dependências do npm são cacheadas para melhor performance
+- **E2E Tests**: Run sequentially (`maxWorkers: 1`) to avoid data conflicts
+- **Database**: PostgreSQL 13 is used for all tests
+- **Node.js**: Version 18 is used in all workflows
+- **Cache**: npm dependencies are cached for better performance

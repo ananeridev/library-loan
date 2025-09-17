@@ -6,10 +6,10 @@ on:
   pull_request:
     branches: [ main, develop ]
   schedule:
-    - cron: '0 2 * * 1' # Executa toda segunda-feira às 2h
+    - cron: '0 2 * * 1' # Runs every Monday at 2 AM
 
 jobs:
-  # Análise de segurança
+  # Security Analysis
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -33,7 +33,7 @@ jobs:
     - name: Check for known vulnerabilities
       run: npx audit-ci --moderate
 
-  # Análise de código
+  # Code Analysis
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
@@ -60,7 +60,7 @@ jobs:
     - name: Type checking
       run: npx tsc --noEmit
 
-  # Análise de dependências
+  # Dependency Analysis
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
