@@ -8,25 +8,30 @@ dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('Library Loans API')
     .setDescription('Library loan management system')
     .setVersion('1.0')
-    .addApiKey({
-      type: 'apiKey',
-      name: 'x-user-id',
-      in: 'header',
-      description: 'User identification header'
-    }, 'x-user-id')
+    .addApiKey(
+      {
+        type: 'apiKey',
+        name: 'x-user-id',
+        in: 'header',
+        description: 'User identification header',
+      },
+      'x-user-id',
+    )
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 

@@ -9,8 +9,6 @@ import { UserIdMiddleware } from '../auth/user-id.middleware';
 })
 export class CatalogModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(UserIdMiddleware)
-      .forRoutes(CatalogController);
+    consumer.apply(UserIdMiddleware).forRoutes(CatalogController);
   }
 }

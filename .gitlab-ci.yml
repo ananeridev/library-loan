@@ -1,0 +1,146 @@
+# GitLab CI/CD Pipeline para Library Loans
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  NODE_VERSION: "18"
+  POSTGRES_DB: "library_loans_test"
+  POSTGRES_USER: "postgres"
+  POSTGRES_PASSWORD: "postgres"
+  DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/library_loans_test"
+
+# Cache para node_modules
+cache:
+  paths:
+    - node_modules/
+    - .npm/
+
+# Testes Unitários
+test:unit:
+  stage: test
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci
+    - npm run test:unit
+  coverage: '/Lines\s*:\s*(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/unit/cobertura-coverage.xml
+    paths:
+      - coverage/unit/
+    expire_in: 1 week
+
+# Testes de Integração
+test:integration:
+  stage: test
+  image: node:${NODE_VERSION}
+  services:
+    - postgres:13
+  variables:
+    POSTGRES_DB: "library_loans_test"
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "postgres"
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/library_loans_test"
+  script:
+    - npm ci
+    - npx prisma generate
+    - npx prisma db push
+    - npm run test:integration
+  artifacts:
+    paths:
+      - coverage/integration/
+    expire_in: 1 week
+
+# Testes E2E
+test:e2e:
+  stage: test
+  image: node:${NODE_VERSION}
+  services:
+    - postgres:13
+  variables:
+    POSTGRES_DB: "library_loans_test"
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "postgres"
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/library_loans_test"
+  script:
+    - npm ci
+    - npx prisma generate
+    - npx prisma db push
+    - npm run test:e2e
+  artifacts:
+    paths:
+      - coverage/e2e/
+    expire_in: 1 week
+
+# Testes Completos (todos os tipos)
+test:all:
+  stage: test
+  image: node:${NODE_VERSION}
+  services:
+    - postgres:13
+  variables:
+    POSTGRES_DB: "library_loans_test"
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "postgres"
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/library_loans_test"
+  script:
+    - npm ci
+    - npx prisma generate
+    - npx prisma db push
+    - npm run test:all
+  artifacts:
+    reports:
+      junit:
+        - coverage/unit/junit.xml
+        - coverage/integration/junit.xml
+        - coverage/e2e/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+    expire_in: 1 week
+  coverage: '/Lines\s*:\s*(\d+\.\d+)%/'
+
+# Build da aplicação
+build:
+  stage: build
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+
+# Deploy (exemplo para staging)
+deploy:staging:
+  stage: deploy
+  image: node:${NODE_VERSION}
+  script:
+    - echo "Deploying to staging..."
+    # Adicione aqui os comandos de deploy para staging
+  environment:
+    name: staging
+    url: https://staging.library-loans.com
+  only:
+    - develop
+
+# Deploy para produção
+deploy:production:
+  stage: deploy
+  image: node:${NODE_VERSION}
+  script:
+    - echo "Deploying to production..."
+    # Adicione aqui os comandos de deploy para produção
+  environment:
+    name: production
+    url: https://library-loans.com
+  only:
+    - main
+  when: manual
