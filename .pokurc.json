@@ -1,0 +1,22 @@
+{
+  "timeout": 30000,
+  "watch": false,
+  "debug": false,
+  "test": {
+    "unit": {
+      "timeout": 10000,
+      "pattern": "test/unit/**/*.spec.ts"
+    },
+    "integration": {
+      "timeout": 20000,
+      "pattern": "test/integration/**/*.spec.ts"
+    },
+    "e2e": {
+      "timeout": 30000,
+      "pattern": "test/e2e/**/*.spec.ts"
+    }
+  },
+  "env": {
+    "NODE_ENV": "test"
+  }
+}

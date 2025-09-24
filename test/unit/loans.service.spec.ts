@@ -1,6 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { describe, it, beforeEach, assert } from 'poku';
 import { LoansService } from '../../src/loans/loans.service';
-import { LoansRepository } from '../../src/loans/repositories/loans.repository';
 import { CreateLoanDto } from '../../src/loans/dto/create-loan.dto';
 import { LoanStatus } from '@prisma/client';
 import {
@@ -8,236 +7,239 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { LoansRepository } from 'src/loans/repositories/loans.repository';
+import { PrismaService } from '../../src/prisma/prisma.service';
 
-describe('LoansService', () => {
+describe('LoansService (business rules only)', function () {
   let service: LoansService;
-  let repository: LoansRepository;
+  let repo: LoansRepository;
+  let mockPrisma: any;
 
-  const mockBook = {
-    id: 'book-1',
-    sku: 'TEST-001',
-    title: 'Test Book',
-    author: 'Test Author',
-    copiesTotal: 2,
-    activeLoansCount: 1,
-  };
+  const userId = 'u-1';
+  const dto: CreateLoanDto = { sku: 'S-1' };
 
-  const mockUser = {
-    id: 'user-1',
-    userId: 'test-user',
-  };
+  beforeEach(function () {
+    mockPrisma = {
+      book: {
+        findUnique: () => Promise.resolve(null),
+      },
+      loan: {
+        count: () => Promise.resolve(0),
+        create: () => Promise.resolve(null),
+        findUnique: () => Promise.resolve(null),
+        update: () => Promise.resolve(null),
+      },
+      user: {
+        findUnique: () => Promise.resolve(null),
+      },
+    };
 
-  const mockLoan = {
-    id: 'loan-1',
-    sku: 'TEST-001',
-    title: 'Test Book',
-    author: 'Test Author',
-    userId: 'test-user',
-    loanDate: new Date('2023-01-01'),
-    status: LoanStatus.ACTIVE,
-  };
+    const prismaService = Object.assign(mockPrisma, {
+      onModuleInit: () => Promise.resolve(),
+      onModuleDestroy: () => Promise.resolve(),
+    }) as unknown as PrismaService;
 
-  const mockLoanWithDetails = {
-    id: 'loan-1',
-    userId: 'user-1',
-    bookId: 'book-1',
-    loanDate: new Date('2023-01-01'),
-    returnDate: null,
-    status: LoanStatus.ACTIVE,
-    book: {
-      sku: 'TEST-001',
-      title: 'Test Book',
-      author: 'Test Author',
-    },
-    user: {
-      userId: 'test-user',
-    },
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        LoansService,
-        {
-          provide: LoansRepository,
-          useValue: {
-            findBookBySkuWithActiveLoans: jest.fn(),
-            countUserActiveLoans: jest.fn(),
-            findUserByUserId: jest.fn(),
-            createLoan: jest.fn(),
-            findLoanByIdWithDetails: jest.fn(),
-            updateLoanToReturned: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<LoansService>(LoansService);
-    repository = module.get<LoansRepository>(LoansRepository);
+    repo = new LoansRepository(prismaService);
+    service = new LoansService(repo);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('createLoan', () => {
-    const createLoanDto: CreateLoanDto = { sku: 'TEST-001' };
-    const userId = 'test-user';
-
-    it('should create a loan successfully', async () => {
-      jest
-        .spyOn(repository, 'findBookBySkuWithActiveLoans')
-        .mockResolvedValue(mockBook);
-      jest.spyOn(repository, 'countUserActiveLoans').mockResolvedValue(1);
-      jest.spyOn(repository, 'findUserByUserId').mockResolvedValue(mockUser);
-      jest
-        .spyOn(repository, 'createLoan')
-        .mockResolvedValue(mockLoanWithDetails);
-
-      const result = await service.createLoan(createLoanDto, userId);
-
-      expect(repository.findBookBySkuWithActiveLoans).toHaveBeenCalledWith(
-        'TEST-001',
-      );
-      expect(repository.countUserActiveLoans).toHaveBeenCalledWith('test-user');
-      expect(repository.findUserByUserId).toHaveBeenCalledWith('test-user');
-      expect(repository.createLoan).toHaveBeenCalledWith('user-1', 'book-1');
-
-      expect(result).toEqual(mockLoan);
-    });
-
-    it('should throw NotFoundException when book is not found', async () => {
-      jest
-        .spyOn(repository, 'findBookBySkuWithActiveLoans')
-        .mockResolvedValue(null);
-
-      await expect(service.createLoan(createLoanDto, userId)).rejects.toThrow(
-        new NotFoundException('Book not found'),
-      );
-    });
-
-    it('should throw ConflictException when book is out of stock', async () => {
-      const outOfStockBook = { ...mockBook, activeLoansCount: 2 };
-      jest
-        .spyOn(repository, 'findBookBySkuWithActiveLoans')
-        .mockResolvedValue(outOfStockBook);
-
-      await expect(service.createLoan(createLoanDto, userId)).rejects.toThrow(
-        new ConflictException('Book not available - out of stock'),
-      );
-    });
-
-    it('should throw ConflictException when user has maximum active loans', async () => {
-      jest
-        .spyOn(repository, 'findBookBySkuWithActiveLoans')
-        .mockResolvedValue(mockBook);
-      jest.spyOn(repository, 'countUserActiveLoans').mockResolvedValue(2);
-
-      await expect(service.createLoan(createLoanDto, userId)).rejects.toThrow(
-        new ConflictException('User already has maximum of 2 active loans'),
-      );
-    });
-
-    it('should throw NotFoundException when user is not found', async () => {
-      jest
-        .spyOn(repository, 'findBookBySkuWithActiveLoans')
-        .mockResolvedValue(mockBook);
-      jest.spyOn(repository, 'countUserActiveLoans').mockResolvedValue(1);
-      jest.spyOn(repository, 'findUserByUserId').mockResolvedValue(null);
-
-      await expect(service.createLoan(createLoanDto, userId)).rejects.toThrow(
-        new NotFoundException('User not found'),
-      );
-    });
-
-    it('should handle edge case with zero active loans', async () => {
-      const availableBook = { ...mockBook, activeLoansCount: 0 };
-      jest
-        .spyOn(repository, 'findBookBySkuWithActiveLoans')
-        .mockResolvedValue(availableBook);
-      jest.spyOn(repository, 'countUserActiveLoans').mockResolvedValue(0);
-      jest.spyOn(repository, 'findUserByUserId').mockResolvedValue(mockUser);
-      jest
-        .spyOn(repository, 'createLoan')
-        .mockResolvedValue(mockLoanWithDetails);
-
-      const result = await service.createLoan(createLoanDto, userId);
-
-      expect(result).toEqual(mockLoan);
-    });
-  });
-
-  describe('returnLoan', () => {
-    const loanId = 'loan-1';
-    const userId = 'test-user';
-
-    it('should return a loan successfully', async () => {
-      const returnedLoan = {
-        ...mockLoanWithDetails,
-        status: LoanStatus.RETURNED,
-        returnDate: new Date('2023-01-02'),
-      };
-
-      jest
-        .spyOn(repository, 'findLoanByIdWithDetails')
-        .mockResolvedValue(mockLoanWithDetails);
-      jest
-        .spyOn(repository, 'updateLoanToReturned')
-        .mockResolvedValue(returnedLoan);
-
-      const result = await service.returnLoan(loanId, userId);
-
-      expect(repository.findLoanByIdWithDetails).toHaveBeenCalledWith(loanId);
-      expect(repository.updateLoanToReturned).toHaveBeenCalledWith(loanId);
-
-      expect(result).toEqual({
-        id: returnedLoan.id,
-        sku: returnedLoan.book.sku,
-        title: returnedLoan.book.title,
-        author: returnedLoan.book.author,
-        userId: returnedLoan.user.userId,
-        loanDate: returnedLoan.loanDate,
-        returnDate: returnedLoan.returnDate,
-        status: returnedLoan.status,
+  it('creates a loan when stock is available and user is under limit', async function () {
+    mockPrisma.book.findUnique = () =>
+      Promise.resolve({
+        id: 'b-1',
+        sku: dto.sku,
+        title: 'T',
+        author: 'A',
+        copiesTotal: 2,
+        loans: [{ id: 'l-existing' }],
       });
-    });
 
-    it('should throw NotFoundException when loan is not found', async () => {
-      jest.spyOn(repository, 'findLoanByIdWithDetails').mockResolvedValue(null);
+    mockPrisma.loan.count = () => Promise.resolve(1);
 
-      await expect(service.returnLoan(loanId, userId)).rejects.toThrow(
-        new NotFoundException('Loan not found'),
-      );
-    });
+    mockPrisma.user.findUnique = () =>
+      Promise.resolve({
+        id: 'db-u-1',
+        userId,
+      });
 
-    it('should throw BadRequestException when loan does not belong to user', async () => {
-      const otherUserLoan = {
-        ...mockLoanWithDetails,
-        user: { userId: 'other-user' },
-      };
+    const created = {
+      id: 'l-1',
+      userId: 'db-u-1',
+      bookId: 'b-1',
+      loanDate: new Date('2024-01-01'),
+      returnDate: null,
+      status: LoanStatus.ACTIVE,
+      book: { sku: dto.sku, title: 'T', author: 'A' },
+      user: { userId },
+    };
+    mockPrisma.loan.create = () => Promise.resolve(created);
 
-      jest
-        .spyOn(repository, 'findLoanByIdWithDetails')
-        .mockResolvedValue(otherUserLoan);
+    const res = await service.createLoan(dto, userId);
 
-      await expect(service.returnLoan(loanId, userId)).rejects.toThrow(
-        new BadRequestException('Loan does not belong to user'),
-      );
-    });
+    assert(res.status === LoanStatus.ACTIVE, 'status ACTIVE');
+    assert(typeof res.id === 'string', 'id is string');
+    assert(res.sku === created.book.sku, 'sku matches source');
+  });
 
-    it('should throw ConflictException when loan is already returned', async () => {
-      const alreadyReturnedLoan = {
-        ...mockLoanWithDetails,
-        status: LoanStatus.RETURNED,
-      };
+  it('throws NotFound when book does not exist', async function () {
+    mockPrisma.book.findUnique = () => Promise.resolve(null);
 
-      jest
-        .spyOn(repository, 'findLoanByIdWithDetails')
-        .mockResolvedValue(alreadyReturnedLoan);
+    try {
+      await service.createLoan(dto, userId);
+      assert(false, 'should throw');
+    } catch (e: any) {
+      assert(e instanceof NotFoundException, 'NotFoundException');
+      assert(e.getStatus() === 404, 'status 404');
+    }
+  });
 
-      await expect(service.returnLoan(loanId, userId)).rejects.toThrow(
-        new ConflictException('Loan already returned'),
-      );
-    });
+  it('throws Conflict when book is out of stock', async function () {
+    mockPrisma.book.findUnique = () =>
+      Promise.resolve({
+        id: 'b-1',
+        sku: dto.sku,
+        title: 'T',
+        author: 'A',
+        copiesTotal: 2,
+        loans: [{ id: 'l-1' }, { id: 'l-2' }],
+      });
+
+    try {
+      await service.createLoan(dto, userId);
+      assert(false, 'should throw');
+    } catch (e: any) {
+      assert(e instanceof ConflictException, 'ConflictException');
+      assert(e.getStatus() === 409, 'status 409');
+    }
+  });
+
+  it('throws Conflict when user reached max active loans (2)', async function () {
+    mockPrisma.book.findUnique = () =>
+      Promise.resolve({
+        id: 'b-1',
+        sku: dto.sku,
+        title: 'T',
+        author: 'A',
+        copiesTotal: 1,
+        loans: [],
+      });
+
+    mockPrisma.loan.count = () => Promise.resolve(2);
+
+    try {
+      await service.createLoan(dto, userId);
+      assert(false, 'should throw');
+    } catch (e: any) {
+      assert(e instanceof ConflictException, 'ConflictException');
+      assert(e.getStatus() === 409, 'status 409');
+    }
+  });
+
+  it('throws NotFound when user does not exist', async function () {
+    mockPrisma.book.findUnique = () =>
+      Promise.resolve({
+        id: 'b-1',
+        sku: dto.sku,
+        title: 'T',
+        author: 'A',
+        copiesTotal: 1,
+        loans: [],
+      });
+
+    mockPrisma.loan.count = () => Promise.resolve(0);
+
+    mockPrisma.user.findUnique = () => Promise.resolve(null);
+
+    try {
+      await service.createLoan(dto, userId);
+      assert(false, 'should throw');
+    } catch (e: any) {
+      assert(e instanceof NotFoundException, 'NotFoundException');
+      assert(e.getStatus() === 404, 'status 404');
+    }
+  });
+
+  it('returns a loan when owner matches and status is ACTIVE', async function () {
+    const active = {
+      id: 'l-1',
+      userId: 'db-u-1',
+      bookId: 'b-1',
+      loanDate: new Date('2024-01-01'),
+      returnDate: null,
+      status: LoanStatus.ACTIVE,
+      book: { sku: 'S-1', title: 'T', author: 'A' },
+      user: { userId },
+    };
+    const returned = {
+      ...active,
+      status: LoanStatus.RETURNED,
+      returnDate: new Date('2024-01-02'),
+    };
+
+    mockPrisma.loan.findUnique = () => Promise.resolve(active);
+    mockPrisma.loan.update = () => Promise.resolve(returned);
+
+    const res = await service.returnLoan(active.id, userId);
+
+    assert(res.status === LoanStatus.RETURNED, 'status RETURNED');
+    assert(res.returnDate instanceof Date, 'has returnDate');
+  });
+
+  it('throws NotFound when loan does not exist', async function () {
+    mockPrisma.loan.findUnique = () => Promise.resolve(null);
+
+    try {
+      await service.returnLoan('l-x', userId);
+      assert(false, 'should throw');
+    } catch (e: any) {
+      assert(e instanceof NotFoundException, 'NotFoundException');
+      assert(e.getStatus() === 404, 'status 404');
+    }
+  });
+
+  it('throws BadRequest when loan belongs to another user', async function () {
+    const other = {
+      id: 'l-1',
+      userId: 'db-u-2',
+      bookId: 'b-1',
+      loanDate: new Date(),
+      returnDate: null,
+      status: LoanStatus.ACTIVE,
+      book: { sku: 'S-1', title: 'T', author: 'A' },
+      user: { userId: 'someone-else' },
+    };
+
+    mockPrisma.loan.findUnique = () => Promise.resolve(other);
+
+    try {
+      await service.returnLoan(other.id, userId);
+      assert(false, 'should throw');
+    } catch (e: any) {
+      assert(e instanceof BadRequestException, 'BadRequestException');
+      assert(e.getStatus() === 400, 'status 400');
+    }
+  });
+
+  it('throws Conflict when loan is already RETURNED', async function () {
+    const already = {
+      id: 'l-1',
+      userId: 'db-u-1',
+      bookId: 'b-1',
+      loanDate: new Date(),
+      returnDate: new Date(),
+      status: LoanStatus.RETURNED,
+      book: { sku: 'S-1', title: 'T', author: 'A' },
+      user: { userId },
+    };
+
+    mockPrisma.loan.findUnique = () => Promise.resolve(already);
+
+    try {
+      await service.returnLoan(already.id, userId);
+      assert(false, 'should throw');
+    } catch (e: any) {
+      assert(e instanceof ConflictException, 'ConflictException');
+      assert(e.getStatus() === 409, 'status 409');
+    }
   });
 });

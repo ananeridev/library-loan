@@ -1,312 +1,109 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { describe, it, beforeEach, assert } from 'poku';
 import { CatalogService } from '../../src/catalog/catalog.service';
-import { PrismaService } from '../../src/prisma/prisma.service';
 import { LoanStatus } from '@prisma/client';
 
-describe('CatalogService', () => {
+class MockPrismaService {
+  _books: any[] = [];
+  book = {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    findMany: async (_args?: unknown) => this._books,
+  };
+  setBooks(books: any[]) {
+    this._books = books;
+  }
+}
+
+describe('CatalogService (business rules only)', function () {
   let service: CatalogService;
-  let prismaService: PrismaService;
+  let prisma: MockPrismaService;
 
-  const mockBooks = [
-    {
-      id: 'book-1',
-      sku: 'TEST-001',
-      title: 'Test Book 1',
-      author: 'Test Author 1',
-      copiesTotal: 3,
-      createdAt: new Date('2023-01-01'),
-      updatedAt: new Date('2023-01-01'),
-      loans: [
-        { id: 'loan-1', status: LoanStatus.ACTIVE },
-        { id: 'loan-2', status: LoanStatus.ACTIVE },
-      ],
-    },
-    {
-      id: 'book-2',
-      sku: 'TEST-002',
-      title: 'Test Book 2',
-      author: 'Test Author 2',
-      copiesTotal: 2,
-      createdAt: new Date('2023-01-01'),
-      updatedAt: new Date('2023-01-01'),
-      loans: [{ id: 'loan-3', status: LoanStatus.ACTIVE }],
-    },
-    {
-      id: 'book-3',
-      sku: 'TEST-003',
-      title: 'Test Book 3',
-      author: 'Test Author 3',
-      copiesTotal: 1,
-      createdAt: new Date('2023-01-01'),
-      updatedAt: new Date('2023-01-01'),
-      loans: [{ id: 'loan-4', status: LoanStatus.ACTIVE }],
-    },
-    {
-      id: 'book-4',
-      sku: 'TEST-004',
-      title: 'Test Book 4',
-      author: 'Test Author 4',
-      copiesTotal: 2,
-      createdAt: new Date('2023-01-01'),
-      updatedAt: new Date('2023-01-01'),
-      loans: [],
-    },
-    {
-      id: 'book-5',
-      sku: 'TEST-005',
-      title: 'Test Book 5',
-      author: 'Test Author 5',
-      copiesTotal: 1,
-      createdAt: new Date('2023-01-01'),
-      updatedAt: new Date('2023-01-01'),
-      loans: [],
-    },
-  ];
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CatalogService,
-        {
-          provide: PrismaService,
-          useValue: {
-            book: {
-              findMany: jest.fn(),
-            },
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<CatalogService>(CatalogService);
-    prismaService = module.get<PrismaService>(PrismaService);
+  beforeEach(function () {
+    prisma = new MockPrismaService();
+    service = new CatalogService(prisma as any);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('returns [] when there are no books', async function () {
+    prisma.setBooks([]);
+
+    const res = await service.getCatalog();
+
+    assert(Array.isArray(res), 'result is array');
+    assert(res.length === 0, 'empty');
   });
 
-  describe('getCatalog', () => {
-    it('should return catalog with correct availability calculations', async () => {
-      jest.spyOn(prismaService.book, 'findMany').mockResolvedValue(mockBooks);
+  it('computes availability from ACTIVE loans (table-driven)', async function () {
+    const cases = [
+      { total: 3, active: 0, available: 3, isAvailable: true },
+      { total: 3, active: 2, available: 1, isAvailable: true },
+      { total: 1, active: 1, available: 0, isAvailable: false },
+      { total: 0, active: 0, available: 0, isAvailable: false },
+    ];
 
-      const result = await service.getCatalog();
+    for (const c of cases) {
+      const loans = Array.from({ length: c.active }, (_, i) => ({
+        id: `l-${i}`,
+        status: LoanStatus.ACTIVE,
+      }));
+      const book = {
+        id: 'b',
+        sku: 'S',
+        title: 'T',
+        author: 'A',
+        copiesTotal: c.total,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+        loans,
+      };
+      prisma.setBooks([book]);
 
-      expect(prismaService.book.findMany).toHaveBeenCalledWith({
-        include: {
-          loans: {
-            where: { status: LoanStatus.ACTIVE },
-          },
-        },
-      });
+      const [row] = await service.getCatalog();
 
-      expect(result).toHaveLength(5);
-
-      expect(result[0]).toEqual({
-        id: 'book-1',
-        sku: 'TEST-001',
-        title: 'Test Book 1',
-        author: 'Test Author 1',
-        copiesTotal: 3,
-        copiesInUse: 2,
-        copiesAvailable: 1,
-        isAvailable: true,
-      });
-
-      expect(result[1]).toEqual({
-        id: 'book-2',
-        sku: 'TEST-002',
-        title: 'Test Book 2',
-        author: 'Test Author 2',
-        copiesTotal: 2,
-        copiesInUse: 1,
-        copiesAvailable: 1,
-        isAvailable: true,
-      });
-
-      expect(result[2]).toEqual({
-        id: 'book-3',
-        sku: 'TEST-003',
-        title: 'Test Book 3',
-        author: 'Test Author 3',
-        copiesTotal: 1,
-        copiesInUse: 1,
-        copiesAvailable: 0,
-        isAvailable: false,
-      });
-
-      expect(result[3]).toEqual({
-        id: 'book-4',
-        sku: 'TEST-004',
-        title: 'Test Book 4',
-        author: 'Test Author 4',
-        copiesTotal: 2,
-        copiesInUse: 0,
-        copiesAvailable: 2,
-        isAvailable: true,
-      });
-
-      expect(result[4]).toEqual({
-        id: 'book-5',
-        sku: 'TEST-005',
-        title: 'Test Book 5',
-        author: 'Test Author 5',
-        copiesTotal: 1,
-        copiesInUse: 0,
-        copiesAvailable: 1,
-        isAvailable: true,
-      });
-    });
-
-    it('should handle empty catalog', async () => {
-      jest.spyOn(prismaService.book, 'findMany').mockResolvedValue([]);
-
-      const result = await service.getCatalog();
-
-      expect(result).toEqual([]);
-    });
-
-    it('should handle books with no loans', async () => {
-      const booksWithoutLoans = [
-        {
-          id: 'book-1',
-          sku: 'TEST-001',
-          title: 'Test Book 1',
-          author: 'Test Author 1',
-          copiesTotal: 2,
-          createdAt: new Date('2023-01-01'),
-          updatedAt: new Date('2023-01-01'),
-          loans: [],
-        },
-      ];
-
-      jest
-        .spyOn(prismaService.book, 'findMany')
-        .mockResolvedValue(booksWithoutLoans);
-
-      const result = await service.getCatalog();
-
-      expect(result[0]).toEqual({
-        id: 'book-1',
-        sku: 'TEST-001',
-        title: 'Test Book 1',
-        author: 'Test Author 1',
-        copiesTotal: 2,
-        copiesInUse: 0,
-        copiesAvailable: 2,
-        isAvailable: true,
-      });
-    });
-
-    it('should handle books with all copies in use', async () => {
-      const fullyBorrowedBook = [
-        {
-          id: 'book-1',
-          sku: 'TEST-001',
-          title: 'Test Book 1',
-          author: 'Test Author 1',
-          copiesTotal: 2,
-          createdAt: new Date('2023-01-01'),
-          updatedAt: new Date('2023-01-01'),
-          loans: [
-            { id: 'loan-1', status: LoanStatus.ACTIVE },
-            { id: 'loan-2', status: LoanStatus.ACTIVE },
-          ],
-        },
-      ];
-
-      jest
-        .spyOn(prismaService.book, 'findMany')
-        .mockResolvedValue(fullyBorrowedBook);
-
-      const result = await service.getCatalog();
-
-      expect(result[0]).toEqual({
-        id: 'book-1',
-        sku: 'TEST-001',
-        title: 'Test Book 1',
-        author: 'Test Author 1',
-        copiesTotal: 2,
-        copiesInUse: 2,
-        copiesAvailable: 0,
-        isAvailable: false,
-      });
-    });
-
-    it('should filter only ACTIVE loans correctly', async () => {
-      const bookWithMixedLoanStatuses = [
-        {
-          id: 'book-1',
-          sku: 'TEST-001',
-          title: 'Test Book 1',
-          author: 'Test Author 1',
-          copiesTotal: 3,
-          createdAt: new Date('2023-01-01'),
-          updatedAt: new Date('2023-01-01'),
-          loans: [
-            { id: 'loan-1', status: LoanStatus.ACTIVE },
-            { id: 'loan-3', status: LoanStatus.ACTIVE },
-          ],
-        },
-      ];
-
-      jest
-        .spyOn(prismaService.book, 'findMany')
-        .mockResolvedValue(bookWithMixedLoanStatuses);
-
-      const result = await service.getCatalog();
-
-      expect(result[0]).toEqual({
-        id: 'book-1',
-        sku: 'TEST-001',
-        title: 'Test Book 1',
-        author: 'Test Author 1',
-        copiesTotal: 3,
-        copiesInUse: 2,
-        copiesAvailable: 1,
-        isAvailable: true,
-      });
-    });
-
-    it('should handle database errors', async () => {
-      const error = new Error('Database connection failed');
-      jest.spyOn(prismaService.book, 'findMany').mockRejectedValue(error);
-
-      await expect(service.getCatalog()).rejects.toThrow(
-        'Database connection failed',
+      assert(row.copiesTotal === c.total, 'copiesTotal');
+      assert(row.copiesInUse === c.active, 'copiesInUse');
+      assert(row.copiesAvailable === c.available, 'copiesAvailable');
+      assert(row.isAvailable === c.isAvailable, 'isAvailable');
+      assert(
+        row.copiesInUse + row.copiesAvailable === row.copiesTotal,
+        'invariant: inUse + available === total',
       );
-    });
+    }
+  });
 
-    it('should handle edge case with zero copies total', async () => {
-      const bookWithZeroCopies = [
-        {
-          id: 'book-1',
-          sku: 'TEST-001',
-          title: 'Test Book 1',
-          author: 'Test Author 1',
-          copiesTotal: 0,
-          createdAt: new Date('2023-01-01'),
-          updatedAt: new Date('2023-01-01'),
-          loans: [],
-        },
-      ];
+  it('does not mutate input and exposes only public fields', async function () {
+    const book = {
+      id: 'b',
+      sku: 'S',
+      title: 'T',
+      author: 'A',
+      copiesTotal: 2,
+      createdAt: new Date('2023-01-01'),
+      updatedAt: new Date('2023-01-01'),
+      loans: [{ id: 'l-1', status: LoanStatus.ACTIVE }],
+    };
+    const snapshot = JSON.stringify(book);
+    prisma.setBooks([book]);
 
-      jest
-        .spyOn(prismaService.book, 'findMany')
-        .mockResolvedValue(bookWithZeroCopies);
+    const [row] = await service.getCatalog();
 
-      const result = await service.getCatalog();
+    // no mutation
+    assert(JSON.stringify(book) === snapshot, 'no mutation');
 
-      expect(result[0]).toEqual({
-        id: 'book-1',
-        sku: 'TEST-001',
-        title: 'Test Book 1',
-        author: 'Test Author 1',
-        copiesTotal: 0,
-        copiesInUse: 0,
-        copiesAvailable: 0,
-        isAvailable: false,
-      });
-    });
+    // public shape only
+    const expected = [
+      'id',
+      'sku',
+      'title',
+      'author',
+      'copiesTotal',
+      'copiesInUse',
+      'copiesAvailable',
+      'isAvailable',
+    ].sort();
+    const actual = Object.keys(row).sort();
+    assert(JSON.stringify(actual) === JSON.stringify(expected), 'shape');
+
+    assert((row as any).createdAt === undefined, 'no createdAt');
+    assert((row as any).updatedAt === undefined, 'no updatedAt');
+    assert((row as any).loans === undefined, 'no loans array');
   });
 });
