@@ -7,24 +7,61 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { MockLoansRepository } from '../shared/mocks';
+import { LoansRepository } from 'src/loans/repositories/loans.repository';
+import { PrismaService } from '../../src/prisma/prisma.service';
 
 describe('LoansService (business rules only)', function () {
   let service: LoansService;
-  let repo: MockLoansRepository;
+  let repo: LoansRepository;
+  let mockPrisma: any;
 
   const userId = 'u-1';
   const dto: CreateLoanDto = { sku: 'S-1' };
 
   beforeEach(function () {
-    repo = new MockLoansRepository();
-    service = new LoansService(repo as any);
+    mockPrisma = {
+      book: {
+        findUnique: () => Promise.resolve(null),
+      },
+      loan: {
+        count: () => Promise.resolve(0),
+        create: () => Promise.resolve(null),
+        findUnique: () => Promise.resolve(null),
+        update: () => Promise.resolve(null),
+      },
+      user: {
+        findUnique: () => Promise.resolve(null),
+      },
+    };
+
+    const prismaService = Object.assign(mockPrisma, {
+      onModuleInit: () => Promise.resolve(),
+      onModuleDestroy: () => Promise.resolve(),
+    }) as unknown as PrismaService;
+
+    repo = new LoansRepository(prismaService);
+    service = new LoansService(repo);
   });
 
   it('creates a loan when stock is available and user is under limit', async function () {
-    repo.setBook({ id: 'b-1', copiesTotal: 2, activeLoansCount: 1 });
-    repo.setUserActiveLoans(1);
-    repo.setUser({ id: 'db-u-1', userId });
+    mockPrisma.book.findUnique = () =>
+      Promise.resolve({
+        id: 'b-1',
+        sku: dto.sku,
+        title: 'T',
+        author: 'A',
+        copiesTotal: 2,
+        loans: [{ id: 'l-existing' }],
+      });
+
+    mockPrisma.loan.count = () => Promise.resolve(1);
+
+    mockPrisma.user.findUnique = () =>
+      Promise.resolve({
+        id: 'db-u-1',
+        userId,
+      });
+
     const created = {
       id: 'l-1',
       userId: 'db-u-1',
@@ -35,7 +72,7 @@ describe('LoansService (business rules only)', function () {
       book: { sku: dto.sku, title: 'T', author: 'A' },
       user: { userId },
     };
-    repo.setCreatedLoan(created);
+    mockPrisma.loan.create = () => Promise.resolve(created);
 
     const res = await service.createLoan(dto, userId);
 
@@ -45,7 +82,7 @@ describe('LoansService (business rules only)', function () {
   });
 
   it('throws NotFound when book does not exist', async function () {
-    repo.setBook(null);
+    mockPrisma.book.findUnique = () => Promise.resolve(null);
 
     try {
       await service.createLoan(dto, userId);
@@ -57,7 +94,15 @@ describe('LoansService (business rules only)', function () {
   });
 
   it('throws Conflict when book is out of stock', async function () {
-    repo.setBook({ id: 'b-1', copiesTotal: 2, activeLoansCount: 2 });
+    mockPrisma.book.findUnique = () =>
+      Promise.resolve({
+        id: 'b-1',
+        sku: dto.sku,
+        title: 'T',
+        author: 'A',
+        copiesTotal: 2,
+        loans: [{ id: 'l-1' }, { id: 'l-2' }],
+      });
 
     try {
       await service.createLoan(dto, userId);
@@ -69,8 +114,17 @@ describe('LoansService (business rules only)', function () {
   });
 
   it('throws Conflict when user reached max active loans (2)', async function () {
-    repo.setBook({ id: 'b-1', copiesTotal: 1, activeLoansCount: 0 });
-    repo.setUserActiveLoans(2);
+    mockPrisma.book.findUnique = () =>
+      Promise.resolve({
+        id: 'b-1',
+        sku: dto.sku,
+        title: 'T',
+        author: 'A',
+        copiesTotal: 1,
+        loans: [],
+      });
+
+    mockPrisma.loan.count = () => Promise.resolve(2);
 
     try {
       await service.createLoan(dto, userId);
@@ -82,9 +136,19 @@ describe('LoansService (business rules only)', function () {
   });
 
   it('throws NotFound when user does not exist', async function () {
-    repo.setBook({ id: 'b-1', copiesTotal: 1, activeLoansCount: 0 });
-    repo.setUserActiveLoans(0);
-    repo.setUser(null);
+    mockPrisma.book.findUnique = () =>
+      Promise.resolve({
+        id: 'b-1',
+        sku: dto.sku,
+        title: 'T',
+        author: 'A',
+        copiesTotal: 1,
+        loans: [],
+      });
+
+    mockPrisma.loan.count = () => Promise.resolve(0);
+
+    mockPrisma.user.findUnique = () => Promise.resolve(null);
 
     try {
       await service.createLoan(dto, userId);
@@ -111,8 +175,9 @@ describe('LoansService (business rules only)', function () {
       status: LoanStatus.RETURNED,
       returnDate: new Date('2024-01-02'),
     };
-    repo.setLoan(active);
-    repo.setUpdatedLoan(returned);
+
+    mockPrisma.loan.findUnique = () => Promise.resolve(active);
+    mockPrisma.loan.update = () => Promise.resolve(returned);
 
     const res = await service.returnLoan(active.id, userId);
 
@@ -121,7 +186,7 @@ describe('LoansService (business rules only)', function () {
   });
 
   it('throws NotFound when loan does not exist', async function () {
-    repo.setLoan(null);
+    mockPrisma.loan.findUnique = () => Promise.resolve(null);
 
     try {
       await service.returnLoan('l-x', userId);
@@ -143,7 +208,8 @@ describe('LoansService (business rules only)', function () {
       book: { sku: 'S-1', title: 'T', author: 'A' },
       user: { userId: 'someone-else' },
     };
-    repo.setLoan(other);
+
+    mockPrisma.loan.findUnique = () => Promise.resolve(other);
 
     try {
       await service.returnLoan(other.id, userId);
@@ -165,7 +231,8 @@ describe('LoansService (business rules only)', function () {
       book: { sku: 'S-1', title: 'T', author: 'A' },
       user: { userId },
     };
-    repo.setLoan(already);
+
+    mockPrisma.loan.findUnique = () => Promise.resolve(already);
 
     try {
       await service.returnLoan(already.id, userId);
